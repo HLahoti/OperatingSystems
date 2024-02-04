@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <time.h>
 
+// gcc -g -pthread quicksort.c -o quick.o
+// ./quick.o
+
 /*
 Quicksort, multithreaded
 1.  An array is partitioned around a pivot element
