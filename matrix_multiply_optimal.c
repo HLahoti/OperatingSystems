@@ -17,13 +17,13 @@ int **C;
 // Take matrices from mat_in.txt
 /*
 mat_in.txt format:
-n n
+n m
 a11 a12 ... a1m
 .
 .
 .
 an1 ....... anm
-n n
+o k
 b11 b12 ... b1k
 .
 .
@@ -55,19 +55,15 @@ struct
 void *thread_task(void *arg)
 {
     task *todo = (task *)arg;
-    // printf("                 DEBUG 2: %d %d\n", todo->begin, todo->end);
     for (int ind = todo->begin; ind <= todo->end; ind++)
-    // for (int ind = todo->end; ind >= todo->begin; ind--)
     {
         int i = ind / (todo->k);
         int j = ind % (todo->k);
         (todo->c)[i][j] = 0;
-        // printf("DEBUG 3: %d - (%d %d) = 0 -> ", ind, i, j);
         for (int l = 0; l < (todo->m); l++)
         {
             (todo->c)[i][j] += (todo->a)[i][l] * (todo->b)[l][j];
         }
-        // printf("%d\n", (todo->c)[i][j]);
     }
     pthread_exit(NULL);
 }
@@ -95,16 +91,12 @@ int **multiply(int n, int m, int **a, int o, int k, int **b, int t)
         if (task_info[i].end > n * k - 1)
             task_info[i].end = n * k - 1;
         threads[i] = (pthread_t *)malloc(sizeof(pthread_t));
-        // printf("DEBUG 1: %d %d\n", ind, i);
         pthread_create(threads[i], NULL, &thread_task, (void *)(task_info + i));
         ind++;
     }
-    // printf("DEBUG 1.1: %d\n", ind);
 
     for (int i = 0; i < t; i++)
         pthread_join(*(threads[i]), NULL);
-
-    // printf("                          DEBUG 4\n");
 
     return c;
 }
@@ -191,8 +183,6 @@ int main(int argc, char **argv)
     int report_threshold = total / FRAC;
     if (!report_threshold)
         report_threshold = 2;
-
-    // int frac = (n * n) / 20;
 
     for (int ind = 1; ind <= total; ind++)
     {
