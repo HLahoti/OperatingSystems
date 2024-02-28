@@ -33,8 +33,8 @@ bo1 ....... bok
 /*
 / Finding optimal thread number for multithreaded matrix multiplication
 1. Matrix multiplication is done using the usual formula
-2. For each element of the resultant matrix, a task is launched
-3. Any available thread can take up an unpicked task
+2. We divide elements of the resultant amongst the threads
+3. A thread only calculates the elements alotted to it
 4. Inputs can be taken from a file, or generated randomly
 5. This program finds the optimal number of threads to use for multiplying
 */
