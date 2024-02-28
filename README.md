@@ -1,6 +1,6 @@
-<h1 align="center" id="title">Parallel Computing</h1>
+<h1 align="center" id="title">operating Systems</h1>
 
-<p id="description">Simple parallel computing applications and their implementations. Done alongside the Operating Systems course in IIT (BHU).</p>
+<p id="description">Simple operating system concepts, their applications and their implementations. Done alongside the Operating Systems course in IIT (BHU).</p>
 
 <h2>🛠️ Installation Steps:</h2>
 
