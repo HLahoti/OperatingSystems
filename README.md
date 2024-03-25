@@ -1,4 +1,4 @@
-<h1 align="center" id="title">operating Systems</h1>
+<h1 align="center" id="title">operating Systems and Parallel Computing</h1>
 
 <p id="description">Simple operating system concepts, their applications and their implementations. Done alongside the Operating Systems course in IIT (BHU).</p>
 
