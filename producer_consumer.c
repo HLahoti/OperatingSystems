@@ -1,114 +1,121 @@
+#include <pthread.h>
+#include <semaphore.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/time.h>
-#include <pthread.h>
 
-#define N 15
-
-// gcc -g -pthread producer_consumer.c -o producer_consumer.o
+// gcc -g -pthread producer_consumer_2.c -o producer_consumer_2.o; ./producer_consumer_2.o
 /*
 / Producer consumer problem
 1. Classic problem of synchronization
-2. Producer must wait for empty space in buffer
-3. Consumer must wait for available data in buffer
-4. Here it is solved using 1 binary semaphore and 2 counting semaphores
+2. Producers must wait for empty space in buffer
+3. Consumers must wait for available data in buffer
 */
 
-int max_buf = N;
-int buffer[N];
-// semaphores
-int upd_buf;
-int avail;
-int emp;
+#define BUF_SIZE 5 // Size of the buffer
 
-struct
-{
-    float wait_time;
-} typedef th_info;
+sem_t empty;
+sem_t full;
+int in = 0;
+int out = 0;
+int buffer[BUF_SIZE];
+pthread_mutex_t mutex;
 
-void wait_semaphore(int *semaphore)
+void *producer(void *pno)
 {
-    while (*semaphore <= 0)
-        ;
-    *semaphore = *semaphore - 1;
-}
-
-void signal_semaphore(int *semaphore)
-{
-    *semaphore = *semaphore + 1;
-}
-
-void *producer(void *arg)
-{
-    th_info *params = (th_info *)arg;
-    int i;
-    do
+    int item;
+    while (1)
     {
-        printf("                     P Waiting\n");
-        wait_semaphore(&emp);
-        wait_semaphore(&upd_buf);
-
+        item = rand() % 10; // Produce an random item
+        printf("                       Producer %d waiting \n", *((int *)pno));
+        // Entry section
+        sem_wait(&empty);
+        pthread_mutex_lock(&mutex);
         // Critical section
-        printf("                     P CS\n");
-        int x = rand() % 10;
-        buffer[max_buf - emp - 1] = x;
-        printf("Putting %d in buffer.\n", x);
-        for (i = 0; i <= avail; i++)
-            printf("%d ", buffer[i]);
-        printf("\n-----------------\n");
-        // End of critical section
-
-        signal_semaphore(&avail);
-        signal_semaphore(&upd_buf);
-        // printf("%d %d\n", emp, avail);
-        sleep(params->wait_time);
-    } while (1);
+        buffer[in] = item;
+        printf("                       Producer %d critical section \nInsert:%d  Pos:%d\n", *((int *)pno), buffer[in], in);
+        in = (in + 1) % BUF_SIZE;
+        int iter;
+        if (in == out)
+        {
+            printf("%d ", buffer[out]);
+            iter = (out + 1) % BUF_SIZE;
+        }
+        else
+            iter = out;
+        while (iter != in)
+        {
+            printf("%d ", buffer[iter]);
+            iter = (iter + 1) % BUF_SIZE;
+        }
+        printf("\n\n");
+        // Exit section
+        pthread_mutex_unlock(&mutex);
+        sem_post(&full);
+        // Remainder section
+        sleep(rand() % 5);
+    }
 }
-
-void *consumer(void *arg)
+void *consumer(void *cno)
 {
-    th_info *params = (th_info *)arg;
-    do
+    while (1)
     {
-        printf("                     C Waiting\n");
-        wait_semaphore(&avail);
-        wait_semaphore(&upd_buf);
-
+        // Entry section
+        sem_wait(&full);
+        printf("                       Consumer %d waiting \n", *((int *)cno));
+        pthread_mutex_lock(&mutex);
         // Critical section
-        printf("                     C CS\n");
-        int y = buffer[avail];
-        printf("Read %d from buffer.\n-----------------\n", y);
-        // End of critical section
-
-        signal_semaphore(&emp);
-        signal_semaphore(&upd_buf);
-        // printf("%d %d\n", emp, avail);
-        sleep(params->wait_time);
-    } while (1);
+        int item = buffer[out];
+        printf("                       Consumer %d critical section \nRemove:%d  Pos:%d\n", *((int *)cno), item, out);
+        out = (out + 1) % BUF_SIZE;
+        // Exit section
+        pthread_mutex_unlock(&mutex);
+        sem_post(&empty);
+        // Remainder section
+        sleep(rand() % 10);
+    }
 }
 
 int main()
 {
-    srand(time(NULL));
-    th_info consumer_info, producer_info;
 
-    printf("Wait time for consumer: ");
-    scanf("%e", &consumer_info.wait_time);
-    printf("Wait time for producer: ");
-    scanf("%e", &producer_info.wait_time);
-    printf("Buffer size (max 15): ");
-    scanf("%d", &max_buf);
-    upd_buf = 1;
-    avail = 0;
-    emp = max_buf - avail;
+    int producers = 1, consumers = 1;
+    printf("Number of producers: ");
+    scanf("%d", &producers);
+    printf("Number of Consumers: ");
+    scanf("%d", &consumers);
+    pthread_t pro[producers], con[consumers];
+    pthread_mutex_init(&mutex, NULL);
+    sem_init(&empty, 0, BUF_SIZE);
+    sem_init(&full, 0, 0);
 
-    pthread_t *consumer_thread = (pthread_t *)malloc(sizeof(pthread_t));
-    pthread_t *producer_thread = (pthread_t *)malloc(sizeof(pthread_t));
-    pthread_create(consumer_thread, NULL, &consumer, &consumer_info);
-    pthread_create(producer_thread, NULL, &producer, &producer_info);
+    int a[(producers > consumers ? producers : consumers)];
+    for (int i = 0; i < (producers > consumers ? producers : consumers); i++)
+        a[i] = i + 1;
 
-    pthread_join(*consumer_thread, NULL);
-    pthread_join(*producer_thread, NULL);
+    for (int i = 0; i < producers; i++)
+    {
+        pthread_create(&pro[i], NULL, (void *)producer, (void *)&a[i]);
+    }
+    for (int i = 0; i < consumers; i++)
+    {
+        pthread_create(&con[i], NULL, (void *)consumer, (void *)&a[i]);
+    }
+
+    for (int i = 0; i < producers; i++)
+    {
+        pthread_join(pro[i], NULL);
+    }
+    for (int i = 0; i < consumers; i++)
+    {
+        pthread_join(con[i], NULL);
+    }
+
+    pthread_mutex_destroy(&mutex);
+    sem_destroy(&empty);
+    sem_destroy(&full);
+
     return 0;
 }
